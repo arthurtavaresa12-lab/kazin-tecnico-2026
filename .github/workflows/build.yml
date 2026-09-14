@@ -1,23 +1,18 @@
-name: Kazin Tecnico - Android
+name: name: Gerar APK + AAB Android V29
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar arquivos
+      - name: Baixar projeto
         uses: actions/checkout@v4
-
-      - name: Extrair projeto V28
-        run: |
-          unzip -o Kazin_Tecnico_2026_V28_Nuvem.zip
-          ls -la
-          ls -la app
 
       - name: Configurar Java
         uses: actions/setup-java@v4
@@ -25,61 +20,36 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Configurar Android SDK 36
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar Android 16
+        run: |
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Preparar projeto Android V29
+        run: |
+          unzip -o Kazin_Tecnico_2026_V29_APP.zip -d android_project
+          find android_project -name gradlew -type f -exec chmod +x {} \;
+
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.10.2'
+          gradle-version: '8.10'
 
-      - name: Criar arquivos Gradle
+      - name: Gerar APK + AAB
+        working-directory: android_project
         run: |
-          cat > settings.gradle <<'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
+          gradle assembleDebug bundleRelease --no-daemon
 
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-
-          rootProject.name = "KazinTecnico2026"
-          include(":app")
-          EOF
-
-          cat > build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application' version '8.8.2' apply false
-          }
-          EOF
-
-      - name: Instalar Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Instalar SDK 36
-        run: |
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0"
-
-      - name: Gerar APK
-        run: gradle assembleDebug --no-daemon
-
-      - name: Gerar AAB
-        run: gradle bundleRelease --no-daemon
-
-      - name: Disponibilizar APK
+      - name: Salvar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Kazin-Tecnico-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: Kazin-Tecnico-V29-APK
+          path: android_project/**/build/outputs/apk/debug/*.apk
 
-      - name: Disponibilizar AAB
+      - name: Salvar AAB
         uses: actions/upload-artifact@v4
         with:
-          name: Kazin-Tecnico-AAB
-          path: app/build/outputs/bundle/release/app-release.aab
+          name: Kazin-Tecnico-V29-AAB
+          path: android_project/**/build/outputs/bundle/release/*.aab
